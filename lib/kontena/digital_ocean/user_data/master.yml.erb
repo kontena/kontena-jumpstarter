@@ -1,0 +1,145 @@
+#cloud-config
+write_files:
+  - path: /etc/kontena.env
+    permissions: 0600
+    owner: root
+    content: |
+      REDIS_VERSION=2.8
+      MONGO_VERSION=3.0
+      KONTENA_VERSION=0.6.0
+      HAPROXY_VERSION=latest
+coreos:
+  units:
+    - name: kontena-redis-data.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=kontena-redis-data
+        After=network-online.target
+        After=docker.service
+        Requires=network-online.target
+        Requires=docker.service
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        EnvironmentFile=/etc/kontena.env
+        ExecStartPre=/usr/bin/docker pull redis:${REDIS_VERSION}
+        ExecStart=/usr/bin/docker create --name kontena-redis-data redis:${REDIS_VERSION}
+    - name: kontena-redis.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=kontena-redis
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        Restart=always
+        RestartSec=5
+        EnvironmentFile=/etc/kontena.env
+        ExecStartPre=-/usr/bin/docker kill kontena-redis
+        ExecStartPre=-/usr/bin/docker rm kontena-redis
+        ExecStartPre=/usr/bin/docker pull redis:${REDIS_VERSION}
+        ExecStart=/usr/bin/docker run --name kontena-redis --volumes-from=kontena-redis-data \
+          redis:${REDIS_VERSION} redis-server --appendonly yes
+
+    - name: kontena-mongo-data.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=kontena-mongo-data
+        After=network-online.target
+        After=docker.service
+        Requires=network-online.target
+        Requires=docker.service
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        EnvironmentFile=/etc/kontena.env
+        ExecStartPre=/usr/bin/docker pull mongo:${MONGO_VERSION}
+        ExecStart=/usr/bin/docker create --name kontena-mongo-data mongo:${MONGO_VERSION}
+    - name: kontena-mongo.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=kontena-mongo
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        Restart=always
+        RestartSec=5
+        EnvironmentFile=/etc/kontena.env
+        ExecStartPre=-/usr/bin/docker kill kontena-mongo
+        ExecStartPre=-/usr/bin/docker rm kontena-mongo
+        ExecStartPre=/usr/bin/docker pull mongo:${MONGO_VERSION}
+        ExecStart=/usr/bin/docker run --name kontena-mongo --volumes-from=kontena-mongo-data \
+          mongo:${MONGO_VERSION} mongod --smallfiles
+
+    - name: kontena-api.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=kontena-api
+        After=kontena-mongo.service
+        Requires=kontena-mongo.service
+        After=kontena-redis.service
+        Requires=kontena-redis.service
+
+        [Service]
+        Restart=always
+        RestartSec=5
+        EnvironmentFile=/etc/kontena.env
+        ExecStartPre=-/usr/bin/docker kill kontena-api
+        ExecStartPre=-/usr/bin/docker rm kontena-api
+        ExecStartPre=/usr/bin/docker pull kontena/server:${KONTENA_VERSION}
+        ExecStart=/usr/bin/docker run --name=kontena-api \
+          --link kontena-mongo:mongodb \
+          --link kontena-redis:redis \
+          -e REDIS_URL=redis://redis:6379/1 \
+          -e MONGODB_URI=mongodb://mongodb:27017/kontena_server \
+          kontena/server:${KONTENA_VERSION}
+
+    - name: kontena-api-bootstrap.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=kontena-api-bootstrap
+        After=kontena-api.service
+        Requires=kontena-api.service
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        EnvironmentFile=/etc/kontena.env
+        ExecStartPre=-/bin/bash -c 'until [ \"`/usr/bin/docker inspect -f {{.State.Running}} kontena-api`\" == \"true\" ]; do sleep 1; done;'
+        ExecStart=/usr/bin/docker exec -d kontena-api bundle exec ruby -r "./app/boot.rb" -e "User.find_or_create_by(email: '<%= admin_email %>');"
+
+    - name: kontena-haproxy.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=kontena-haproxy
+        After=kontena-api.service
+        Requires=kontena-api.service
+
+        [Service]
+        Restart=always
+        RestartSec=5
+        EnvironmentFile=/etc/kontena.env
+        ExecStartPre=-/usr/bin/docker kill kontena-haproxy
+        ExecStartPre=-/usr/bin/docker rm kontena-haproxy
+        ExecStartPre=/usr/bin/docker pull kontena/haproxy:${HAPROXY_VERSION}
+        ExecStart=/usr/bin/docker run --name=kontena-haproxy \
+          --link kontena-api:kontena-api \
+          -e BACKEND_PORT=9292 \
+          -p 8080:80 -p 8443:443 kontena/haproxy:${HAPROXY_VERSION}
