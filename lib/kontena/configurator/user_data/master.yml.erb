@@ -12,6 +12,7 @@ write_files:
     permissions: 0700
     owner: root
     content: |
+      #!/bin/sh
       /usr/bin/docker exec -d kontena-api bundle exec ruby -r "./app/boot.rb" -e "User.find_or_create_by(email: '<%= admin_email %>');"
 coreos:
   units:

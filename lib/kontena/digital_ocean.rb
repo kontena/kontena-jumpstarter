@@ -1,6 +1,7 @@
 require "droplet_kit"
 require "kontena/configurator/master_cloud_config"
 require "kontena/configurator/node_cloud_config"
+require "kontena/configurator/node_configurator"
 require "kontena/digital_ocean/master_provisioner"
 require "kontena/digital_ocean/grid_provisioner"
 

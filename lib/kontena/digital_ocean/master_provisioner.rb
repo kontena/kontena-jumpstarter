@@ -21,8 +21,7 @@ module Kontena
           region: opts[:region],
           image: 'coreos-beta',
           size: opts[:size],
-          private_networking: true,
-          user_data: @cloud_config.initial_user_data(opts[:version], admin_email: opts[:email])
+          private_networking: true
         )
         created = client.droplets.create(droplet)
         puts 'Waiting for master node to start '
@@ -34,6 +33,12 @@ module Kontena
         puts ""
         puts "Kontena master node created successfully!"
 
+        puts "Starting to configure master node"
+        sleep 10
+        user_data = @cloud_config.initial_user_data(opts[:version], admin_email: opts[:email])
+        configurator = Kontena::Configurator::NodeConfigurator.new(user_data, master.public_ip, '~/.ssh/id_rsa_do')
+        configurator.apply
+        
         master
       end
 
