@@ -4,7 +4,7 @@ write_files:
     permissions: 0600
     owner: root
     content: |
-      KONTENA_VERSION="<%= kontena_version %>"
+      KONTENA_VERSION="latest"
       CADVISOR_VERSION="<%= cadvisor_version %>"
       KONTENA_URI="<%= master_uri %>"
       KONTENA_TOKEN="<%= grid_token %>"
@@ -16,10 +16,12 @@ write_files:
       BRIDGE_CIDR="10.81.0.<%= node_number %>/16"
       DOCKER_OPTS='--bridge=weave --fixed-cidr="10.81.<%= node_number %>.0/24"'
 coreos:
-  etcd:
+  etcd2:
     discovery: <%= discovery_url %>
-    addr: $private_ipv4:4001
-    peer-addr: $private_ipv4:7001
+    advertise-client-urls: http://$private_ipv4:2379
+    initial-advertise-peer-urls: http://$private_ipv4:2380
+    listen-client-urls: http://$private_ipv4:2379
+    listen-peer-urls: http://$private_ipv4:2380
   units:
     - name: etcd.service
       command: start
@@ -40,6 +42,7 @@ coreos:
         Description=Install Weave
         Documentation=http://zettio.github.io/weave/
         Requires=network-online.target
+        
         [Service]
         Type=oneshot
         RemainAfterExit=yes

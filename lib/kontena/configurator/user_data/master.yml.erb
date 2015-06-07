@@ -4,10 +4,15 @@ write_files:
     permissions: 0600
     owner: root
     content: |
-      REDIS_VERSION=2.8
-      MONGO_VERSION=3.0
-      KONTENA_VERSION=0.6.0
-      HAPROXY_VERSION=latest
+      REDIS_VERSION="<%= redis_version %>"
+      MONGO_VERSION="<%= mongo_version %>"
+      KONTENA_VERSION="<%= kontena_version %>"
+      HAPROXY_VERSION="<%= haproxy_version %>"
+  - path: /opt/bin/kontena-api-bootstrap.sh
+    permissions: 0700
+    owner: root
+    content: |
+      /usr/bin/docker exec -d kontena-api bundle exec ruby -r "./app/boot.rb" -e "User.find_or_create_by(email: '<%= admin_email %>');"
 coreos:
   units:
     - name: kontena-redis-data.service
@@ -121,7 +126,7 @@ coreos:
         RemainAfterExit=yes
         EnvironmentFile=/etc/kontena.env
         ExecStartPre=-/bin/bash -c 'until [ \"`/usr/bin/docker inspect -f {{.State.Running}} kontena-api`\" == \"true\" ]; do sleep 1; done;'
-        ExecStart=/usr/bin/docker exec -d kontena-api bundle exec ruby -r "./app/boot.rb" -e "User.find_or_create_by(email: '<%= admin_email %>');"
+        ExecStart=/opt/bin/kontena-api-bootstrap.sh
 
     - name: kontena-haproxy.service
       command: start

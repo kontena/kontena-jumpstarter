@@ -1,6 +1,3 @@
-require 'erb'
-require 'ostruct'
-
 module Kontena
   module DigitalOcean
     class MasterProvisioner
@@ -9,6 +6,7 @@ module Kontena
 
       def initialize(token)
         @client = DropletKit::Client.new(access_token: token)
+        @cloud_config = Kontena::Configurator::MasterCloudConfig.new
       end
 
       def run!(opts)
@@ -24,7 +22,7 @@ module Kontena
           image: 'coreos-beta',
           size: opts[:size],
           private_networking: true,
-          user_data: erb(user_data_template, admin_email: opts[:email])
+          user_data: @cloud_config.initial_user_data(opts[:version], admin_email: opts[:email])
         )
         created = client.droplets.create(droplet)
         puts 'Waiting for master node to start '
@@ -41,14 +39,6 @@ module Kontena
 
       def master_exists?(name)
         client.droplets.all.any?{|d| d.name == name}
-      end
-
-      def erb(template, vars)
-        ERB.new(template).result(OpenStruct.new(vars).instance_eval { binding })
-      end
-
-      def user_data_template
-        File.read(File.expand_path('./user_data/master.yml.erb', File.dirname(__FILE__)))
       end
     end
   end

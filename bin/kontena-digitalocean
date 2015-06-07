@@ -21,6 +21,7 @@ command 'provision-master' do |c|
   c.option '--token STRING', String, 'DO token'
   c.option '--email STRING', String, 'Kontena admin email'
   c.option '--ssh-key-name STRING', String, 'DO ssh key name'
+  c.option '--kontena-version STRING', String, 'Kontena version (default: 0.6.1)'
   c.option '--name STRING', String, 'Droplet name (default: kontena-master)'
   c.option '--size STRING', String, 'Droplet size (default: 512m)'
   c.option '--region STRING', String, 'Region (default: ams3)'
@@ -31,6 +32,7 @@ command 'provision-master' do |c|
 
     provisioner = Kontena::DigitalOcean::MasterProvisioner.new(options.token)
     provisioner.run!(
+      version: options.version || '0.6.1',
       email: options.email,
       ssh_key_name: options.ssh_key_name,
       name: options.name || 'kontena-master',
