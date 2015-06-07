@@ -1,8 +1,8 @@
-# Kontena Machine
+# Kontena Jumpstarter
 
 > Warning: Highly experimental stuff
 
-Kontena Machine lets you create Kontena nodes on your computer, on cloud providers, and inside your own data center. It creates servers and installs Kontena on them.
+Kontena Jumpstarter lets you create Kontena nodes on your computer, on cloud providers, and inside your own data center. It creates servers and installs Kontena on them.
 
 
 ## Usage
@@ -10,7 +10,7 @@ Kontena Machine lets you create Kontena nodes on your computer, on cloud provide
 ### Vagrant
 
 
-#### Provision Master Node
+#### Jumpstart Master Node
 
 ```
 $ kontena-vagrant provision-master \
@@ -18,7 +18,7 @@ $ kontena-vagrant provision-master \
   --size=512mb
 ```
 
-#### Provision Grid
+#### Jumpstart Grid
 
 ```
 $ kontena-vagrant provision-grid \
@@ -34,7 +34,7 @@ $ kontena-vagrant provision-grid \
 ### DigitalOcean
 
 
-#### Provision Master Node
+#### Jumpstart Master Node
 
 ```
 $ kontena-digitalocean provision-master \
@@ -45,7 +45,7 @@ $ kontena-digitalocean provision-master \
   --region=ams3
 ```
 
-#### Provision Grid
+#### Jumpstart Grid
 
 ```
 $ kontena-digitalocean provision-grid \
