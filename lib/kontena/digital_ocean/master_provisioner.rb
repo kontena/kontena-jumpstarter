@@ -1,3 +1,5 @@
+require 'sshkey'
+
 module Kontena
   module DigitalOcean
     class MasterProvisioner
@@ -13,8 +15,9 @@ module Kontena
         raise ArgumentError.new("#{opts[:name]} droplet already exists") if master_exists?(opts[:name])
 
         ssh_keys = []
-        ssh_key = client.ssh_keys.all.find{|s| s.name == opts[:ssh_key_name]}
-        ssh_keys << ssh_key.id if ssh_key
+        raise ArgumentError.new('Invalid ssh key') unless File.exists?(File.expand_path(opts[:ssh_key]))
+        ssh_key = SSHKey.new(File.read(File.expand_path(opts[:ssh_key])))
+        ssh_keys = [ssh_key.md5_fingerprint]
         droplet = DropletKit::Droplet.new(
           name: opts[:name],
           ssh_keys: ssh_keys,
@@ -23,22 +26,27 @@ module Kontena
           size: opts[:size],
           private_networking: true
         )
+        puts "Creating master node to DigitalOcean ..."
+        puts "Region: #{droplet.region}"
+        puts "Size: #{droplet.size}"
         created = client.droplets.create(droplet)
-        puts 'Waiting for master node to start '
+        puts ""
+        print "Waiting for droplet to start ."
         until client.droplets.find(id: created.id).status == 'active' do
-          print '.'
           sleep 1
+          print "."
         end
         master = client.droplets.find(id: created.id)
-        puts ""
-        puts "Kontena master node created successfully!"
 
-        puts "Starting to configure master node"
-        sleep 10
+        puts ""
+        puts "Starting to configure master node ..."
         user_data = @cloud_config.initial_user_data(opts[:version], admin_email: opts[:email])
-        configurator = Kontena::Configurator::NodeConfigurator.new(user_data, master.public_ip, '~/.ssh/id_rsa_do')
+        configurator = Kontena::Configurator::NodeConfigurator.new(user_data, master.public_ip, opts[:ssh_key])
         configurator.apply
-        
+
+        puts "You can now connect to master using:"
+        puts "kontena connect http://#{master.public_ip}:8080"
+
         master
       end
 

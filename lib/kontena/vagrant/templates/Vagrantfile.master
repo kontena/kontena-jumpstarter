@@ -1,0 +1,42 @@
+# -*- mode: ruby -*-
+# # vi: set ft=ruby :
+
+require 'fileutils'
+
+Vagrant.require_version ">= 1.6.0"
+
+$instance_name_prefix = "core"
+$update_channel = "beta"
+
+Vagrant.configure("2") do |config|
+  config.ssh.insert_key = false
+
+  config.vm.box = "coreos-beta"
+  config.vm.box_version = ">= 308.0.1"
+  config.vm.box_url = "http://beta.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json"
+
+  config.vm.provider :virtualbox do |v|
+    # On VirtualBox, we don't have guest additions or a functional vboxsf
+    # in CoreOS, so tell Vagrant that so it can be smarter.
+    v.check_guest_additions = false
+    v.functional_vboxsf     = false
+  end
+
+  # plugin conflict
+  if Vagrant.has_plugin?("vagrant-vbguest") then
+    config.vbguest.auto_update = false
+  end
+
+  config.vm.define vm_name = "kontena-master" do |config|
+    config.vm.hostname = vm_name
+
+    config.vm.provider :virtualbox do |vb|
+      vb.gui = false
+      vb.memory = 512
+      vb.cpus = 1
+    end
+
+    ip = "192.168.66.100"
+    config.vm.network :private_network, ip: ip
+  end
+end
