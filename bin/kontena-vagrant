@@ -20,7 +20,7 @@ command 'provision-cloud' do |c|
   c.description = 'Provision master + grid nodes'
   c.option '--email STRING', String, 'Kontena admin email'
   c.option '--kontena-version STRING', String, 'Kontena version (default: 0.6.1)'
-  c.option '--name STRING', String, 'Droplet name (default: kontena-master)'
+  c.option '--name STRING', String, 'Machine name (default: kontena-master)'
   c.action do |args, options|
     raise ArgumentError.new('--email is required') unless options.email
 
@@ -39,18 +39,16 @@ command 'provision-master' do |c|
   c.syntax = 'provision-master'
   c.description = 'Provision master node'
   c.option '--email STRING', String, 'Kontena admin email'
-  c.option '--ssh-key-name STRING', String, 'DO ssh key name'
+  c.option '--size STRING', String, 'Machine size'
   c.option '--kontena-version STRING', String, 'Kontena version (default: 0.6.1)'
-  c.option '--name STRING', String, 'Droplet name (default: kontena-master)'
+  c.option '--name STRING', String, 'Machine name (default: kontena-master)'
   c.action do |args, options|
     raise ArgumentError.new('--email is required') unless options.email
-    raise ArgumentError.new('--ssh-key-name is required') unless options.ssh_key_name
 
     provisioner = Kontena::Vagrant::MasterProvisioner.new
     provisioner.run!(
       version: options.version || '0.6.1',
       email: options.email,
-      ssh_key_name: options.ssh_key_name,
       name: options.name || 'kontena-master',
       size: options.size || '512mb'
     )
@@ -64,7 +62,7 @@ command 'provision-grid' do |c|
   c.option '--grid-token STRING', String, 'Grid token'
   c.option '--grid-size INTEGER', Integer, 'Initial grid size (default: 3)'
   c.option '--kontena-version STRING', String, 'Kontena version (default: 0.6.1)'
-  c.option '--name STRING', String, 'Droplet name (default: kontena-node)'
+  c.option '--name STRING', String, 'Machine name (default: kontena-node)'
   c.action do |args, options|
     raise ArgumentError.new('--master-uri is required') unless options.master_uri
     raise ArgumentError.new('--grid-token is required') unless options.grid_token

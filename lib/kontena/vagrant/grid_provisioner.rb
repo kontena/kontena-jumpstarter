@@ -11,7 +11,8 @@ module Kontena
 
       def run!(opts)
         initial_size = opts[:initial_size].to_i
-
+        vagrant_root_dir = File.join(Dir.pwd, ".kontena-vagrant-nodes")
+        FileUtils.mkdir(vagrant_root_dir) unless Dir.exists?(vagrant_root_dir)
         initial_size.times do |i|
           number = i + 1
           provision_node(number)
